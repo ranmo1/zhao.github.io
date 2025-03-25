@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>医疗检查信息收集系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        h1, h2, h3 {
+            color: #1a73e8;
+            text-align: center;
+        }
+        .form-section, .results-section {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0d62c9;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #1a73e8;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .tab-container {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: #eee;
+            cursor: pointer;
+        }
+        .tab.active {
+            background: #1a73e8;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .correlation-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .correlation-controls select {
+            flex: 1;
+        }
+        @media (max-width: 480px) {
+            .correlation-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>医疗检查信息收集系统</h1>
+        
+        <div class="form-section">
+            <h2>填写检查信息</h2>
+            <form id="medicalForm">
+                <div class="form-group">
+                    <label for="name">姓名</label>
+                    <input type="text" id="name" value="赵" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="checkDate">检查日期</label>
+                    <input type="date" id="checkDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="location">检查地点</label>
+                    <input type="text" id="location" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="doctor">检查医师</label>
+                    <input type="text" id="doctor" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="protein">尿蛋白 (mg/24h)</label>
+                    <input type="number" id="protein" step="0.01" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="creatinine">肌酐</label>
+                    <input type="number" id="creatinine" step="0.01" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="medicationAssessment">本阶段用药评估</label>
+                    <select id="medicationAssessment" required>
+                        <option value="按时按量">按时按量</option>
+                        <option value="未按时">未按时</option>
+                        <option value="未按量">未按量</option>
+                        <option value="未按时未按量">未按时未按量</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="recorder">记录人</label>
+                    <input type="text" id="recorder" required>
+                </div>
+                
+                <button type="submit">提交信息</button>
+            </form>
+        </div>
+        
+        <div class="results-section">
+            <h2>信息汇总</h2>
+            
+            <div class="tab-container">
+                <div class="tab active" data-tab="records">记录卡片</div>
+                <div class="tab" data-tab="trend">趋势图表</div>
+                <div class="tab" data-tab="correlation">相关性分析</div>
+            </div>
+            
+            <div class="tab-content active" id="records">
+                <h3>所有检查记录</h3>
+                <div id="recordsContainer"></div>
+            </div>
+            
+            <div class="tab-content" id="trend">
+                <h3>指标趋势图</h3>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <div class="form-group">
+                    <label for="trendMetric">选择指标</label>
+                    <select id="trendMetric">
+                        <option value="protein">尿蛋白 (mg/24h)</option>
+                        <option value="creatinine">肌酐</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="correlation">
+                <h3>相关性分析</h3>
+                <div class="chart-container">
+                    <canvas id="correlationChart"></canvas>
+                </div>
+                <div class="correlation-controls">
+                    <select id="xAxis">
+                        <option value="protein">尿蛋白 (mg/24h)</option>
+                        <option value="creatinine">肌酐</option>
+                        <option value="date">检查日期</option>
+                    </select>
+                    <select id="yAxis">
+          
